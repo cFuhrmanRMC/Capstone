@@ -89,7 +89,7 @@ class Deck:
         return len(self.cards)
    
     # return a string that describes the deck of cards
-    def __repr__(self)->str:
+    def __str__(self)->str:
         return "Deck containing " + str(self.getSize()) + " cards"
    
     # deal a card from the deck
