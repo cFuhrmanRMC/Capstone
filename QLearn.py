@@ -86,6 +86,76 @@ class QLearn:
                 return 1
             else: 
                 return 0
+
+    # Update the QTable
+    #
+    """
+      Reward could be an int or a float depending on alpha rate
+    """
+    def upateQTable(self, playerSum: int, dealerCard: int, usableAce: int, action: int, reward, newPlayerSum: int, newDealerCard: int, newUsableAce: int):
+        # Ensure usableAce is boolean
+        assert usableAce == 0 or usableAce == 1, "usableAce must be equal to 0 or 1"
+        
+        # Ensure action is boolean
+        assert action == 0 or action == 1, "action must be equal to 0 or 1"
+        
+        # get the current reward for the state from the Q table
+        currentValue = self.QTable[playerSum, dealerCard, self.rewardIndex(action, usableAce)]
+        
+        # determine the maximum possible reward for the new state
+        futureHitValue = self.QTable[newPlayerSum, newDealerCard, self.rewardIndex(usableAce, 1)]
+        futureStayValue = self.QTable[newPlayerSum, newDealerCard, self.rewardIndex(usableAce, 0)]
+        if futureHitValue > futureStayValue:
+            futureValue = futureHitValue
+        else: 
+            futureValue = futureStayValue
+            
+        """
+          temporal difference calculates reward value factoring in learning rate and discount factor
+        """
+        temporalDifference = currentValue + self.alpha * (reward + self.gamma * (futureValue - currentValue))
+        
+        # Update the reward value in the Qtable 
+        self.QTable[playerSum, dealerCard, self.rewardIndex(action, usableAce)] = temporalDifference
+        
+        # train the agent
+        #
+        def train(self, epsisodes: int):
+            progress = round(episodes / 100)
+            print("...Training...")
+            
+            ##########
+            games = 0
+            wins = 0
+            losses = 0
+            draws = 0
+            ##########
+            
+            #Create a deck of cards
+            deck = Deck(6)
+            deck.shuffle()
+            
+            # Play a game for each epsiode
+            for episode in range(episodes):
+                
+                # print the progress 
+                if episode % progress == 0:
+                    currProgress = (episode/ episodes) * 100
+                    print("%d %" % currProgress)
+                
+                # add more cards if the deck gets less than or equal to 52 cards    
+                if deck.getSize() <= 52:
+                    deck.addDecks(5)
+                    deck.shuffle()
+                    
+                    
+                dealerHand = Hand()
+                playerHand = Hand()
+                     
+    
+        """
+        COME BACK TOO WHEN GAME IS FINISHED
+        """
                 
                 
             
