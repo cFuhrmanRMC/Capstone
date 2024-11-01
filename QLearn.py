@@ -1,15 +1,16 @@
+# QLearn.py
+# authors: Cole Fuhrman, Jordan Brown
+# Capstone Project
 #
 #
-#
-#
-#
-#
+# This file contains the QLearn class
 
 
 import numpy as np
 import random
-from Cards import Card, Deck
+from Cards import Card, Deck, Hand
 
+# QLearn contains methods that trains an agent to play the card game blackjack
 class QLearn:
     
     # Construct a Qlearning object
@@ -39,6 +40,16 @@ class QLearn:
         
         # intialize the Q table
         self.QTable = np.zeros((33, 12, 4))
+        
+    # prints the q table to a text file    
+    def printTable(self, fileName: str):
+        file = open(fileName, "w")
+        for i in range(self.QTable.shape[0]):
+            file.write("%d \n" %i)
+            np.savetxt(file, self.QTable[i], fmt="%10.5f")
+            file.write('\n')
+            
+        file.close()
         
     """
       Actions:
@@ -72,8 +83,8 @@ class QLearn:
     # Agent chooses an action
     #
     
-    def chooseAction(self, playerSum: int, dealerCard: int, usableAce: int)->int:
-        #Ensure usableAce is boolean
+    def chooseAction(self, playerValue: int, dealerCard: int, usableAce: int)->int:
+        # Ensure usableAce is boolean
         assert usableAce == 0 or usableAce == 1, "usableAce must be equal to 0 or 1"
         
         # generate a random value between 0 and 1, if the value is less than epsilon choose a random action (return 0 or 1)
@@ -82,17 +93,18 @@ class QLearn:
         
         else:
             #Check to see if the reward value is higher for hitting or standing and choose the action that has the highest reward
-            if self.QTable[playerSum, dealerCard, (self.rewardIndex(1, usableAce))] > self.QTable[playerSum, dealerCard, (self.rewardIndex(0, usableAce))]:
+            if self.QTable[playerValue, dealerCard, (self.rewardIndex(1, usableAce))] > self.QTable[playerValue, dealerCard, (self.rewardIndex(0, usableAce))]:
                 return 1
             else: 
                 return 0
-
+                
+                
     # Update the QTable
     #
     """
       Reward could be an int or a float depending on alpha rate
     """
-    def upateQTable(self, playerSum: int, dealerCard: int, usableAce: int, action: int, reward, newPlayerSum: int, newDealerCard: int, newUsableAce: int):
+    def updateQTable(self, playerValue: int, dealerCard: int, usableAce: int, action: int, reward, newPlayerValue: int, newUsableAce: int):
         # Ensure usableAce is boolean
         assert usableAce == 0 or usableAce == 1, "usableAce must be equal to 0 or 1"
         
@@ -100,11 +112,12 @@ class QLearn:
         assert action == 0 or action == 1, "action must be equal to 0 or 1"
         
         # get the current reward for the state from the Q table
-        currentValue = self.QTable[playerSum, dealerCard, self.rewardIndex(action, usableAce)]
+        currentValue = self.QTable[playerValue, dealerCard, self.rewardIndex(action, usableAce)]
         
         # determine the maximum possible reward for the new state
-        futureHitValue = self.QTable[newPlayerSum, newDealerCard, self.rewardIndex(usableAce, 1)]
-        futureStayValue = self.QTable[newPlayerSum, newDealerCard, self.rewardIndex(usableAce, 0)]
+        futureHitValue = self.QTable[newPlayerValue, dealerCard, self.rewardIndex(1, newUsableAce)]
+        futureStayValue = self.QTable[newPlayerValue, dealerCard, self.rewardIndex(0, newUsableAce)]
+        
         if futureHitValue > futureStayValue:
             futureValue = futureHitValue
         else: 
@@ -113,52 +126,115 @@ class QLearn:
         """
           temporal difference calculates reward value factoring in learning rate and discount factor
         """
-        temporalDifference = currentValue + self.alpha * (reward + self.gamma * (futureValue - currentValue))
+        temporalDifference = currentValue + self.alpha * (reward + self.gamma * futureValue - currentValue)
         
         # Update the reward value in the Qtable 
-        self.QTable[playerSum, dealerCard, self.rewardIndex(action, usableAce)] = temporalDifference
+        self.QTable[playerValue, dealerCard, self.rewardIndex(action, usableAce)] = temporalDifference
         
-        # train the agent
-        #
-        def train(self, epsisodes: int):
-            progress = round(episodes / 100)
-            print("...Training...")
+    # train the agent
+    #
+    def train(self, numGames: int):
+        
+        print("Training")
             
-            ##########
-            games = 0
-            wins = 0
-            losses = 0
-            draws = 0
-            ##########
+        numPlayed = 0
             
-            #Create a deck of cards
-            deck = Deck(6)
-            deck.shuffle()
+        # create a deck
+        deck = Deck(6)
+        deck.shuffle()
             
-            # Play a game for each epsiode
-            for episode in range(episodes):
+        while numPlayed < numGames:
                 
-                # print the progress 
-                if episode % progress == 0:
-                    currProgress = (episode/ episodes) * 100
-                    print("%d %" % currProgress)
+            # Add cards if deck runs low
+            if deck.getSize() <= 52:
+                deck.addDecks(5)
+                deck.shuffle()
+                    
                 
-                # add more cards if the deck gets less than or equal to 52 cards    
-                if deck.getSize() <= 52:
-                    deck.addDecks(5)
-                    deck.shuffle()
+            #intialize hands
+            dealer = Hand()
+            player = Hand()
+                
+            player.draw(deck)
+            dealer.draw(deck)
+            player.draw(deck)
+            dealer.draw(deck)
+                
+            dealerCard= dealer.hand[0].getValue()
+            playerValue, usableAce = player.countHand()
+                
+            if dealerCard > 10:
+                dealerCard = 10
+                    
+            continueGame = True
+            while continueGame == True:
+                    
+                action = self.chooseAction(playerValue, dealerCard, usableAce)
+                    
+                #if hit, draw from the deck
+                if action == 1:
+                    player.draw(deck)
+                    newPlayerValue, newUsableAce = player.countHand()
+                        
+                    # Player busts or hits 21, game is over
+                    if newPlayerValue >= 21:
+                        continueGame = False
+                    
+                # player Stands, game is over         
+                else:
+                    continueGame = False
+                    
+                newPlayerValue, newUsableAce = player.countHand()
+                        
+            # game is over        
+            if newPlayerValue > 21:
+                reward = -1
+                    
+            # dealer's turn
+            else:
+                    
+                dealerValue, dealerUsableAce = dealer.countHand()
+                    
+                while dealerValue < 17:
+                    dealer.draw(deck)
+                    dealerValue, dealerUsableAce = dealer.countHand()
+                        
+                        
+                # determine out comes
+                if dealerValue > newPlayerValue:
+                    reward = -1
+                        
+                elif newPlayerValue > dealerValue:
+                    reward = 1
+                        
+                else: 
+                    reward = 0
+                        
+            numPlayed += 1
+            self.updateQTable(playerValue, dealerCard, usableAce, action, reward, newPlayerValue, newUsableAce)
+            
+        print("Complete")
+                
                     
                     
-                dealerHand = Hand()
-                playerHand = Hand()
-                     
+                            
+                        
+                        
+            
+        
+        
+        
+            
+        
+        
+        
+def main():
+    agent = QLearn(.1, .9, .1)
+    agent.train(5000000)
     
-        """
-        COME BACK TOO WHEN GAME IS FINISHED
-        """
-                
-                
-            
+    agent.printTable("test.txt")
+
+main()
         
         
         
