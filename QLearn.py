@@ -13,6 +13,9 @@ from Cards import Card, Deck, Hand
 # QLearn contains methods that trains an agent to play the card game blackjack
 class QLearn:
     
+    DEBUG = False
+    DEBUG2 = False
+    
     # Construct a Qlearning object
     """
      alpha: Learning rate -> how quickly the agent "learns"
@@ -133,9 +136,15 @@ class QLearn:
         
     # train the agent
     #
+    """
+    ACTION will always be stay????
+     - Unless player busts, in that case hit action is stored
+    """
     def train(self, numGames: int):
         
         print("Training")
+        
+        progress = round(numGames/100)
             
         numPlayed = 0
             
@@ -143,8 +152,230 @@ class QLearn:
         deck = Deck(6)
         deck.shuffle()
             
+        usableAceCounter = 0
+            
         while numPlayed < numGames:
+            
+            # Calculate and print the progress
+            if  numPlayed % progress == 0:
+                print("% " + str(round(numPlayed/numGames * 100)))
                 
+            
+                
+            # Add cards if deck runs low
+            if deck.getSize() <= 52:
+                deck.addDecks(5)
+                deck.shuffle()
+                    
+                
+            #intialize hands
+            dealer = Hand()
+            player = Hand()
+                
+            player.draw(deck)
+            dealer.draw(deck)
+            player.draw(deck)
+            dealer.draw(deck)
+                
+            
+            dealerCard = dealer.hand[0].getValue()
+           
+                
+            if dealerCard > 10:
+                dealerCard = 10
+            
+            ##TESTCODE
+            if dealerCard == 1:
+                dealerCard = 11
+           
+        
+            continueGame = True
+          
+            action = 2
+           
+            tempReward =0
+            while continueGame == True and action != 0:
+                
+                
+                playerValue, usableAce = player.countHand() 
+                if usableAce == 1:
+                    usableAceCounter += 1
+          
+                action = self.chooseAction(playerValue, dealerCard, usableAce)
+                    
+                #if hit, draw from the deck
+                if action == 1:
+                    player.draw(deck)
+                    
+                
+                newPlayerValue, newUsableAce = player.countHand()
+                    
+                    
+                if newPlayerValue > 21:
+                    continueGame = False
+                    tempReward = 0
+                elif newPlayerValue == 21:
+                    continueGame = False
+                    tempReward = 1
+                    
+                if tempReward != 0:
+                    self.updateQTable(playerValue, dealerCard, usableAce, action, tempReward, newPlayerValue, newUsableAce)
+                                  
+                    
+                
+                    
+                
+                
+                
+                    
+                    
+                    
+                """
+                    ####
+                    hitCounter +=1
+                    ####
+                    player.draw(deck)
+                    newPlayerValue, newUsableAce = player.countHand()
+                        
+                    # Player busts or hits 21, game is over
+                    if newPlayerValue > 21:
+                        continueGame = False
+                        
+                        ######TEST CODE
+                        tempReward = -1
+                        ######TEST CODE
+                        
+                        
+                    elif newPlayerValue == 21:
+                        standCounter += 1
+                        continueGame = False
+                        
+                        ######TEST CODE
+                        tempReward = 1
+                        ######TESTCODE
+                        
+                    
+                # player Stands, game is over         
+                else:
+                    continueGame = False
+                    
+                    #####TEST CODE
+                    if playerValue == 21:
+                        tempReward = 1
+                    #####TESTCODE
+                    
+                    newPlayerValue, newUsableAce = player.countHand()
+            
+                
+             
+            
+            #update for black jack or bust
+                if tempReward != 0:
+                    self.updateQTable(playerValue, dealerCard, usableAce, action, tempReward, newPlayerValue, newUsableAce)
+              
+                                
+                                
+            """
+                
+            # game is over        
+            if newPlayerValue > 21:
+                reward = -1
+            
+                    
+            # dealer's turn
+            else:
+                    
+                dealerValue, dealerUsableAce = dealer.countHand()
+                    
+                while dealerValue < 17:
+                    dealer.draw(deck)
+                    dealerValue, dealerUsableAce = dealer.countHand()
+                        
+                        
+                # determine out comes
+                if dealerValue > 21 or newPlayerValue > dealerValue:
+                    reward = 1
+                
+                elif dealerValue > newPlayerValue:
+                    reward = -1
+                        
+                else: 
+                    reward = 0
+                    
+                
+            if QLearn.DEBUG:
+                print("Game Number: %d" % numPlayed)
+                print("Dealer Card: %d" % dealerCard)
+                print("Dealer Value: ", dealerValue)
+                print("Player Value after action: ", newPlayerValue)
+                print("Players cards: ", player)
+                print("reward: %d" % reward)
+                print("usable ace: %d" % usableAce)
+                print("action:  %d" % action)
+                print("Q Value for current action: %.3f" % self.QTable[playerValue, dealerCard, self.rewardIndex(action, usableAce)] )    
+                
+                
+                
+                
+                    
+            if QLearn.DEBUG2:
+                if usableAce == 1:
+                    
+                    print("Game Number: %d" % numPlayed)
+                    print("Dealer Card: %d" % dealerCard)
+                    print("Dealer Value: ", dealerValue)
+                    print("Player Value after action: ", newPlayerValue)
+                    print("Players cards: ", player)
+                    print("reward: %d" % reward)
+                    print("usable ace: %d" % usableAce)
+                    print("action:  %d" % action)
+                    print("Q Value for current action: %.3f" % self.QTable[playerValue, dealerCard, self.rewardIndex(action, usableAce)] )                         
+                        
+                        
+                
+            numPlayed += 1
+            self.updateQTable(playerValue, dealerCard, usableAce, action, reward, newPlayerValue, newUsableAce)
+            
+            
+                
+            if QLearn.DEBUG2:
+                if usableAce == 1:
+                    print("Q value after action: %.3f" % self.QTable[playerValue, dealerCard, self.rewardIndex(action, usableAce)] ) 
+                    print()
+                    
+                        
+            
+            
+            
+            if QLearn.DEBUG:
+                print("Q value after action: %.3f" % self.QTable[playerValue, dealerCard, self.rewardIndex(action, usableAce)] )
+               # print("standCounter: %d"% standCounter)
+                #print("hitCounter: %d"% hitCounter)
+                print()
+
+          
+            
+        print("Complete")
+        print(usableAceCounter)
+        
+    # Agent plays the game
+    def playGame(self, numGames):
+        
+            
+        numPlayed = 0
+
+        numWins = 0
+        numLosses = 0
+        numDraws = 0
+            
+        # create a deck
+        deck = Deck(6)
+        deck.shuffle()
+        
+      
+        while numPlayed < numGames:
+            
+                    
             # Add cards if deck runs low
             if deck.getSize() <= 52:
                 deck.addDecks(5)
@@ -165,11 +396,17 @@ class QLearn:
                 
             if dealerCard > 10:
                 dealerCard = 10
+                
+            if dealerCard == 1:
+                dealerCard = 11
                     
             continueGame = True
             while continueGame == True:
+                playerValue, usableAce = player.countHand()
                     
                 action = self.chooseAction(playerValue, dealerCard, usableAce)
+                
+              
                     
                 #if hit, draw from the deck
                 if action == 1:
@@ -185,10 +422,15 @@ class QLearn:
                     continueGame = False
                     
                 newPlayerValue, newUsableAce = player.countHand()
+                ##########playerValue, usableAce = player.countHand()
                         
             # game is over        
             if newPlayerValue > 21:
+                numLosses += 1
+                
+                ###
                 reward = -1
+                ###
                     
             # dealer's turn
             else:
@@ -201,19 +443,50 @@ class QLearn:
                         
                         
                 # determine out comes
-                if dealerValue > newPlayerValue:
+                if dealerValue > 21:
+                    numWins += 1
+                    
+                    ###
+                    reward = 1
+                    ###
+                
+                
+                
+                elif dealerValue > newPlayerValue:
+                    numLosses += 1
+                    
+                    ####
                     reward = -1
+                    ###
                         
                 elif newPlayerValue > dealerValue:
+                    numWins += 1
+                    
+                    ###
                     reward = 1
+                    ###
                         
                 else: 
+                    numDraws += 1
+                    
+                    ###
                     reward = 0
-                        
+                    ###
+                    
+                    
+                    
             numPlayed += 1
-            self.updateQTable(playerValue, dealerCard, usableAce, action, reward, newPlayerValue, newUsableAce)
             
-        print("Complete")
+        print("number of wins: %d" % numWins)
+        print("number of losses: %d" % numLosses)
+        print("number of draws: %d" % numDraws)
+        
+        winRate = numWins / (numWins + numLosses) * 100
+        print("win rate: %.2f" % winRate)
+        
+       
+            
+            
                 
                     
                     
@@ -229,10 +502,12 @@ class QLearn:
         
         
 def main():
-    agent = QLearn(.1, .9, .1)
-    agent.train(5000000)
+    agent = QLearn(.1, .4, .1)
+    agent.train(2000000)
     
     agent.printTable("test.txt")
+    
+    agent.playGame(10000)
 
 main()
         
