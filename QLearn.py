@@ -163,7 +163,6 @@ class QLearn:
         deck = Deck(6)
         deck.shuffle()
             
-        usableAceCounter = 0
             
         while numPlayed < numGames:
             
@@ -190,6 +189,7 @@ class QLearn:
                 
             
             dealerCard = dealer.hand[0].getValue()
+            dealerValue, dealerUsableAce = dealer.countHand()
            
                 
             if dealerCard > 10:
@@ -205,12 +205,11 @@ class QLearn:
             action = 2
             
             tempReward =0
-            while continueGame == True: #and action != 0:
+            while continueGame == True and action != 0:
                 
                 
                 playerValue, usableAce = player.countHand() 
-                if usableAce == 1:
-                    usableAceCounter += 1
+           
           
                 action = self.chooseAction(playerValue, dealerCard, usableAce)
                     
@@ -564,7 +563,7 @@ def main():
     agent = QLearn(.1, .4, .1)
     agent.train(5000000)
     
-    agent.printTable("test.txt")
+    agent.printTable("humanReadableQTable.txt")
     agent.saveTable("blackJackQTable.npy")
     
     #agent.playGame(10000)
