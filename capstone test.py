@@ -1,14 +1,13 @@
 #Casino Blackjack Classes
-# Alec Shalowitz Sam Slevin
+# Alec Shalowitz, Sam Slevin
 
-
-# ASK NECAISE ABOUT AFTER()
-# AFTER TIME ELAPSED DO THIS BUT AFTER GAME IS DISPLAYED AND NOT BEFORE
+#Use timer to delay game with update idle tasks
 
 
 # Import tkinter
 import tkinter as tk
 from blackjack import *
+import time
 
 # Class that vreates a Tkinter window
 class CasinoWindow:
@@ -67,28 +66,22 @@ class CasinoButton:
    
    
     def buttonHit(self, root,width, height,statusBar, textBox, hand,deck, placement):
-        #draw a new card
-        #update score counter
-        #change turn
-
         hand.draw(deck)
         if placement == 1:
             playerHand = hand.countHand()
-           
-        score = hand.hand[-1].getValue()
+    
         textBox.updateScore(playerHand)
-        statusBar.updatePlayerTurn()
+        #statusBar.updatePlayerTurn()
         statusBar.printCards(root, hand, placement, width, height, textBox)
-       #self,root,hand, placement, width, height, textBox
        
     def buttonStay(self, statusBar):
         statusBar.updatePlayerTurn()
         
-    def buttonDoubleDown(self, playerCurrency):
+    def buttonDoubleDown(self,playerCurrency,root, width, height, statusBar, textBox, hand, deck, placement):
         bet = playerCurrency.getBet()
         bet = bet * 2
         playerCurrency.updateBet(bet)
-        
+        self.buttonHit(root,width, height,statusBar, textBox, hand,deck, placement)
     # Class button constructor
     # @param root: the root window
     # @param text: the text to display on the button
@@ -113,7 +106,7 @@ class CasinoButton:
             self.button = tk.Button(root, text=text, bg=bg_color, relief = "ridge",bd=5,command=lambda: self.buttonStay(statusBar))
             self.button.place(x=x_pos, y=y_pos, width = width/5, height = height/8)        
         if(command == "double down"):
-            self.button = tk.Button(root, text=text, bg=bg_color, relief="ridge",bd=5,command = lambda: self.buttonDoubleDown(playerCurrency))
+            self.button = tk.Button(root, text=text, bg=bg_color, relief="ridge",bd=5,command = lambda: self.buttonDoubleDown(playerCurrency, root,width, height,statusBar, player1TextBox, hand,deck,1 ))
             self.button.place(x=x_pos, y=y_pos, width = width/5, height = height/8)
 
        
@@ -133,31 +126,15 @@ class CasinoScore:
         self.textBox.insert('1.0', self._score)
         self.textBox.config(state="disabled")
         self.textBox.place(x = x_pos, y= y_pos, height = height, width = width)
-        
-
-       
+              
     def getScore(self):
         return self._score
-   
-    #def updateScore(self, game, whichPlayer):
-        #self.textBox.config(state="normal")
-        #self.textBox.delete('1.0', tk.END)
-        #if(whichPlayer) == 1:
-            #self.textBox.insert('1.0', game.getPlayerHand())
-        #elif(whichPlayer) == 2:
-            #self.textBox.insert('1.0', game.getComputerHand())
-        #elif(whichPlayer) == 0:
-            #self.textBox.insert('1.0', game.getDealerHand())
-        #self.textBox.config(state="disabled")
-   
-
-    
         
     def updateScore(self, score):
         self.textBox.config(state="normal")
         self.textBox.delete('1.0', tk.END)
         self.textBox.insert('1.0', score)        
-
+        self.textBox.config(state="disabled")
     
   
 class Currency:
@@ -181,19 +158,6 @@ class Currency:
         self.textBox.insert('2.0', self._bet)
         self.textBox.config(state="disabled")
        
-    ## Update the score of the text box with the old score + new score
-    ## @param score: the score to add to the old score
-    #def updateScore(self, score):
-        ##assert score <= 100
-        #self.textBox.config(state="normal")
-        #self.previousScore = int(self.textBox.get('1.0', 'end-1c'))
-        #self.textBox.delete('1.0', tk.END)
-        #newScore = score + self.previousScore
-        #self.textBox.insert('1.0', newScore)      
-        #self.textBox.config(state="disabled")
-        #print("Previous Score: ",self.previousScore,"Score to be added:",score,"New Score: ",newScore)
-       
-
 # Class to create a status bar to display information        
 class CasinoStatus:
        
@@ -202,7 +166,7 @@ class CasinoStatus:
     # @param width: the width of the status text box
     # @param height: the height of the status text box  
     def __init__(self, root,width, height):
-        self.textBox = tk.Text(root, bg = "yellow")
+        self.textBox = tk.Text(root, bg = "grey")
         self.textBox.place(x=0, y=height-20, width = width, height = height/20)
         self.textBox.insert(1.0, "Welcome to Blackjack! Player 1 will go first!")
         self.textBox.config(state="disabled")
@@ -211,7 +175,8 @@ class CasinoStatus:
         #self.textBox.after(1000, self.openingTurn())
         #root.after(100, self.openingTurn())        
        
-    def openingTurn(self):
+    def openingTurn(self, root):
+        root.after(2000)
         self.textBox.config(state="normal")
         self.textBox.delete(1.0, tk.END)        
         self.textBox.insert(1.0, "Player 1's turn.")
@@ -247,11 +212,21 @@ class CasinoStatus:
         else:
             self.textBox.insert(1.0, "Dealer won!")
         self.textBox.config(state="disabled")
-   
+        
     def printCards(self,root,hand, placement, width, height, textBox):
         dealerPlacement = (10, height /10)
         playerPlacement = (50, height/2)
         computerPlacement = (width *0.6, height/2)
+        
+        handLength = len(hand.hand)
+        
+        if(handLength > 6):
+            playerPlacement = (30, height/2)
+            computerPlacement = (width * 0.5, height /2)
+            
+        if(handLength > 9):
+            playerPlacement = (10, height/2)
+            computerPlacement = (width * 0.4, height/2)
        
         #player = 1
         if placement == 1:
@@ -277,19 +252,10 @@ class CasinoCard:
     # @param row: the row to place the card at
     # @param column: the column to place the card at
     # @param textBox: the text box to increment the card score in
-   
-    #NEED TO HANDLE ACE KING QUEEN JACK 11/1? 12 13 14
     def __init__(self, root, suit, value, row, column, textBox):
         currentScore = textBox.getScore()
+        
        # 1 is hearts, 2 is diamonds, 3 is clubs, 4 is spades
-        #if(suit == "spades"):
-            #suit = chr(9824)
-        #elif(suit == "clubs"):
-            #suit = chr(9827)
-        #elif(suit == "hearts"):
-            #suit = chr(9829)
-        #elif(suit == "diamonds"):
-            #suit = chr(9830)
         if(suit == 1):
             suit = chr(9829)
         elif(suit == 2):
@@ -316,51 +282,49 @@ class CasinoCard:
             face = "A"
         else:
             face = value
-           
-            #card_frame = tk.LabelFrame(root, text=suit, bd=0)
+
         card_frame = tk.Frame(root,bg="white", width = 50, height = 100)
-        #card_frame.grid(row = row, column = column, padx = 20, pady=20)
         card_frame.place(x=row, y = column)
        
-           
-           
         cardFrameLabel = tk.Label(card_frame, text="%s         \n%s         \n%s\n       %s\n       %s"% (suit,face,chr(0x263B),face,suit))
         cardFrameLabel.config(highlightbackground="black", highlightthickness = 2)
         cardFrameLabel.pack()  
-       
-        #textBox.updateScore(value)
-
-            ##card_frame = tk.LabelFrame(root, text=suit, bd=0)
-            #card_frame = tk.Frame(root,bg="white", width = 50, height = 100)
-            ##card_frame.grid(row = row, column = column, padx = 20, pady=20)
-            #card_frame.place(x=row, y=column)
-            #cardFrameLabel = tk.Label(card_frame, text="%s         \n%s         \n%s\n       %s\n       %s"% (suit,value,chr(0x263A),value,suit))
-            #cardFrameLabel.config(highlightbackground="black", highlightthickness = 2)
-            #cardFrameLabel.pack()
-           
-            #textBox.updateScore(value)
-           
-       
-           
+          
 
 class CasinoDeck():
    
     def __init__(self, root,width,height):
-        deck_frame = tk.Frame(root,bg="black", width = 50, height = 95, relief = "raised", bd = 5)
+        deck_frame = tk.Frame(root,bg="orange", width = 50, height = 95, relief = "raised", bd = 5)
         deck_frame.place(x=width-width/20 -30, y = height/10)
         deck_frame.pack_propagate(False)
         deckFrameLabel = tk.Label(deck_frame, text = "%s"% (chr(0x263A)))
         deckFrameLabel.pack(pady=30)
        
 class gameSetup():
-    def __init__(self, numDecks, dealerTextBox, playerTextBox, computerTextBox):
+    def __init__(self, root,width, height,numDecks, dealerTextBox, playerTextBox, computerTextBox, statusBar):
         self._deck = Deck(numDecks)
         self._deck.shuffle()
         self._playerHand = Hand()
         self._computerHand = Hand()
         self._dealerHand = Hand()
-       
-        for i in range(2):
+        self._dealerTextBox = dealerTextBox
+        self._statusBar = statusBar
+        
+        card_frame = tk.Frame(root,bg="orange", width = 45, height = 85, relief = "raised", bd = 2)
+        card_frame.place(x=85, y = height/10)
+        card_frame.pack_propagate(False)
+        cardFrameLabel = tk.Label(card_frame, text = "%s"% (chr(0x263A)))
+        cardFrameLabel.pack(pady=30) 
+        
+        card_frame = tk.Frame(root,bg="orange", width = 45, height = 85, relief = "raised", bd = 2)
+        card_frame.place(x=10, y = height/10)
+        card_frame.pack_propagate(False)
+        cardFrameLabel = tk.Label(card_frame, text = "%s"% (chr(0x263A)))
+        cardFrameLabel.pack(pady=30)        
+        
+        
+    def showScores(self, dealerTextBox, computerTextBox, playerTextBox):
+        for i in range(1):
             self._dealerHand.draw(self._deck)
             dealerTextBox.updateScore(self.getDealerHandValue())
            
@@ -371,7 +335,14 @@ class gameSetup():
         for i in range(2):
             self._playerHand.draw(self._deck)
             playerTextBox.updateScore(self.getPlayerHandValue())
-           
+            
+                     
+
+    def flipDealerCard(self, root, hand,height, width, statusBar, dealerTextBox):
+        self._dealerHand.draw(self._deck)
+        statusBar.printCards(root, self.getDealerHand(), 0, width, height, dealerTextBox)
+        dealerTextBox.updateScore(self.getDealerHandValue())
+        
     def getPlayerHand(self):
         return self._playerHand
    
@@ -392,35 +363,15 @@ class gameSetup():
    
     def getDealerHandValue(self):
         return self._dealerHand.countHand()
-   
+
 def openCasinoWindow():
     casinoWindow = CasinoWindow()
-   
    
     #Create reference variables
     width = casinoWindow.getWindowWidth()
     height = casinoWindow.getWindowHeight()
     root = casinoWindow.getRoot()
-    player = casinoWindow.getPlayer()
-
-   
-    #def printCards(root,hand, placement, width, height, textBox):
-        #dealerPlacement = (10, height /10)
-        #playerPlacement = (50, height/2)
-        #computerPlacement = (width *0.6, height/2)
-       
-        ##player = 1
-        #if placement == 1:
-            #for i in range(len(hand.hand)):
-                #newCard = CasinoCard(root, hand.hand[i].getSuit(), hand.hand[i].getValue(), playerPlacement[0] + (i*25), playerPlacement[1], textBox )
-        ##computer = 2
-        #elif placement == 2:
-            #for i in range(len(hand.hand)):
-                #newCard = CasinoCard(root, hand.hand[i].getSuit(), hand.hand[i].getValue(), computerPlacement[0] + (i*25), computerPlacement[1], textBox )
-        ##dealer = 0        
-        #elif placement == 0:
-            #for i in range(len(hand.hand)):
-                #newCard = CasinoCard(root, hand.hand[i].getSuit(), hand.hand[i].getValue(), dealerPlacement[0] + (i*75), dealerPlacement[1], textBox )    
+    player = casinoWindow.getPlayer()  
    
     #Create frames
     frame1 = CasinoFrame(root, "green", width, height/3, 0,0)
@@ -433,39 +384,18 @@ def openCasinoWindow():
     computerScore = CasinoScore(root, 30, 30, width-width/20, height/3, "white")
     playerScore = CasinoScore(root, 30, 30, width/2 - width/20, height/3, "white")
     playerCurrency = Currency(root, 30, 30, width - width/11, height * 4/5, "white")
-    #playerCurrency.updateCurrency(5)
-   
-   
-    game = gameSetup(1, dealerScore, playerScore, computerScore)
-    #Create status bar
-    statusBar = CasinoStatus(root,width, height)  
+    
+    #Create the status bar
+    statusBar = CasinoStatus(root,width, height) 
+    
+    #Set the game up
+    game = gameSetup(root,width,height,5, dealerScore, playerScore, computerScore, statusBar)
    
     #Create buttons
-  
-    #button1 = CasinoButton(root, "Hit",width, height, "yellow", int(width/8), int(height * 6.7/8), statusBar,playerScore, computerScore, game.getPlayerHand(), game.getDeck(),"hit")
-    button1 = CasinoButton(root, "Hit",width, height, "yellow", int(width /4) - width/10 -50, int(height * 6.7/8), statusBar,playerScore, computerScore, game.getPlayerHand(), game.getDeck(),playerCurrency,"hit")
-    #button2 = CasinoButton(root, "Stay", int(width/4), int(height/8), "yellow", width * 5/8, height * 6.7/8,statusBar,playerScore, computerScore,game.getPlayerHand(), game.getDeck(),"stay")
-    button2 = CasinoButton(root, "Stay", width, height, "yellow", int(width /2) - width/10, int(height * 6.7/8),statusBar,playerScore, computerScore,game.getPlayerHand(), game.getDeck(),playerCurrency,"stay")
-    button3 = CasinoButton(root, "Double Down", width, height, "yellow", int(width *3/4) - width/10 + 50, int(height *6.7/8),statusBar, playerScore, computerScore, game.getPlayerHand(), game.getDeck(),playerCurrency, "double down")
-                           
-    #| button | button | button |
-   
-    ##Create cards
-    #card = CasinoCard(root, 1, 11, 10, height/10, dealerScore)
-    #card2 = CasinoCard(root, 2, 2, 90, height/10, dealerScore)
-    #card3 = CasinoCard(root, 4, 3, 170, height/10, dealerScore)
-    #card4 = CasinoCard(root, 3, 12, 250, height/10, dealerScore)
-   
-    #card5 = CasinoCard(root, 4, 10, 10, height/2, playerScore)
-    #card6 = CasinoCard(root, 3, 2, 60, height/2, playerScore)
-   
-    ##card7 = CasinoCard(root, "diamonds", "jack", width/2 + 10, height/2, computerScore)
-    #card7 = CasinoCard(root, 2, 1, width * 0.6, height/2, computerScore)
-    #card8 = CasinoCard(root, 4, 5, width*0.6 + 25, height/2, computerScore)
-    #card9 = CasinoCard(root, 3, 9, width*0.6 + 50, height/2, computerScore)
-    #card10 = CasinoCard(root, 3, 8, width*0.6 + 75, height/2, computerScore)
-    #card11 = CasinoCard(root, 1, 7, width*0.6 + 100, height/2, computerScore)
-   
+    button1 = CasinoButton(root, "Hit",width, height, "grey", int(width /4) - width/10 -50, int(height * 6.7/8), statusBar,playerScore, computerScore, game.getPlayerHand(), game.getDeck(),playerCurrency,"hit")
+    button2 = CasinoButton(root, "Stay", width, height, "grey", int(width /2) - width/10, int(height * 6.7/8),statusBar,playerScore, computerScore,game.getPlayerHand(), game.getDeck(),playerCurrency,"stay")
+    button3 = CasinoButton(root, "Double Down", width, height, "grey", int(width *3/4) - width/10 + 50, int(height *6.7/8),statusBar, playerScore, computerScore, game.getPlayerHand(), game.getDeck(),playerCurrency, "double down")
+
     #Create the deck
     cardDeck = CasinoDeck(root,width,height)
    
@@ -478,16 +408,28 @@ def openCasinoWindow():
    
     player_label = tk.Label(root, text="Computer",relief="ridge", bd=5, width=10, height=2, bg="blue")
     player_label.place(x=width * 7 / 10, y=height / 3)    
- 
-    #root.after(2000,statusBar.openingTurn())
 
-       
+    #statusBar.printCards(root, game.getPlayerHand(), 1, width, height, playerScore)
+    #statusBar.printCards(root, game.getComputerHand(), 2, width, height, computerScore)
+    #statusBar.printCards(root, game.getDealerHand(), 0, width, height, dealerScore)    
+
+    #Flip the dealer's second card
+    #game.flipDealerCard(root, game.getDealerHand(), height, width, statusBar, dealerScore)
+    #game.dealerDrawCard()
+    #game.flipDealerCard(root, game.getDealerHand(), height, width, statusBar, dealerScore)
+    #game.flipDealerCard(root, game.getDealerHand(), height, width, statusBar, dealerScore)
+    #create the main menu loop
+    
+    root.update_idletasks()
+    
+    statusBar.openingTurn(root)
+    game.showScores(dealerScore, computerScore, playerScore)
     statusBar.printCards(root, game.getPlayerHand(), 1, width, height, playerScore)
     statusBar.printCards(root, game.getComputerHand(), 2, width, height, computerScore)
     statusBar.printCards(root, game.getDealerHand(), 0, width, height, dealerScore)    
-   
-   
-    #create the main menu loop
+    
+    #UNCOMMENT THIS TO FLIP DEALERS SECOND CARD
+    #game.flipDealerCard(root, game.getDealerHand(), height, width, statusBar, dealerScore)
     casinoWindow.getRoot().mainloop()  
    
    
@@ -506,7 +448,7 @@ def main():
     # Create buttons that will open the CasinoWindow
     button1 = tk.Button(root, text="Easy", relief="raised", bd=5,command=openCasinoWindow, bg = "light green")
     button1.place(x=150, y=100, width=100, height=50)
-
+    
     button2 = tk.Button(root, text="Medium",relief="raised", bd=5, command=openCasinoWindow, bg = "light blue")
     button2.place(x=150, y=170, width=100, height=50)
      
