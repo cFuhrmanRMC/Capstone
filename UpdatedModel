@@ -235,6 +235,11 @@ class BlackjackGame:
         self.human_hand = Hand()
         self.computer_hand = Hand()
         self.dealer_hand = Hand()
+
+        self.humanPlayerWins = 0  # 1 = win, 2 = loss, 0 = undecided
+        self.computerPlayerWins = 0
+        self.humanPlayerTurnDone = False
+        self.computerPlayerTurnDone = False
         
         # Deal two cards to each player and the dealer
         for _ in range(2):
@@ -251,6 +256,7 @@ class BlackjackGame:
         if action == 0:  # Stand
             print("Player stands.")
             self.setHumanPlayerTurnDone(True)
+            self.computerPlayerTurn()
         elif action == 1:  # Hit
             print("Player hits.")
             self.human_hand.draw(self.deck)
@@ -259,19 +265,19 @@ class BlackjackGame:
                 print("Player busts!")
                 self.setHumanPlayerWin(2)  # Player loses
                 self.setHumanPlayerTurnDone(True)
+                self.computerPlayerTurn()
         elif action == 2:  # Double Down
             print("Player doubles down.")
             self.human_hand.draw(self.deck)
             humanValue, _ = self.human_hand.countHand()
             self.bet *= 2  # Double the bet
+            self.setHumanPLayerTurnDone(True)
+            self.computerPlayerTurn()
             if humanValue > 21:
                 print("Player busts!")
                 self.setHumanPlayerWin(2)  # Player loses
                 self.setHumanPlayerTurnDone(True)
-                
-        else:
-            print("Invalid action. Please choose 'hit', 'stand', or 'double down'.")            
-                
+                self.computerPlayerTurn()
         
     def computerPlayerTurn(self):
         while not self.computerPlayerTurnDone:
@@ -282,10 +288,12 @@ class BlackjackGame:
                 if computerValue > 21:
                     print("Computer busts!")
                     self.setComputerPlayerWin(2)  # Computer loses
+                    self.setComputerPlayerTurnDone(True)
+                    self.dealer_turn()
                 else:
                     print("Computer has blackjack!")
                     self.setComputerPlayerTurnDone(True)
-                    break  # Exit the loop if turn is done
+                    self.dealer_turn()
 
             # Determine action based on algorithm
             action = self.computer_algorithm(computerValue)
@@ -296,7 +304,6 @@ class BlackjackGame:
             elif action == "stand":
                 print("Computer stands.")
                 self.setComputerPlayerTurnDone(True)
-
 
         
     def computer_algorithm(self, computerValue):
@@ -314,7 +321,7 @@ class BlackjackGame:
             dealerValue, _ = self.dealer_hand.countHand()
             if dealerValue >= 17:
                 print("Dealer stands.")
-                break
+                self.calculate_winner()
             else:
                 print("Dealer hits.")
                 self.dealer_hand.draw(self.deck)
@@ -357,12 +364,16 @@ class BlackjackGame:
         
     def setComputerPlayerTurnDone(self, boolStatus):
         self.computerPlayerTurnDone = boolStatus
+
+    def conclude_game():
         
-    def play_game(self):
+    """
+    def _game(self):
         """Main game loop."""
-        self.start_game()
+        #self.start_game()
         
         # Human's turn
+        """
         while not self.humanPlayerTurnDone:
             action = int(input("Enter 0 to stand, 1 to hit, 2 to double down: "))
             self.humanPlayerInput(action)
@@ -372,13 +383,15 @@ class BlackjackGame:
         
         # Dealer's turn
         self.dealer_turn()
-        
+
+        """
         # Determine the winner
         self.calculate_winner()
         
         print(f"Player wins: {self.humanPlayerWins}")
         print(f"Computer wins: {self.computerPlayerWins}")
         print(f"Current balance: ${self.balance}")
+    """
         
         
 # To run the game
