@@ -219,6 +219,7 @@ class BlackjackGame:
         }
     
     def __init__(self, num_decks=6, starting_balance=100, algoNum=1):
+        
         self.deck = Deck(num_decks)
         self.deck.shuffle()
 
@@ -343,10 +344,11 @@ class BlackjackGame:
         self.computerPlayerTurnDone = False
         
         # Deal two cards to each player and the dealer
-        for _ in range(2):
-            self.human_hand.draw(self.deck)
-            self.computer_hand.draw(self.deck)
-            self.dealer_hand.draw(self.deck)
+        self.human_hand.draw(self.deck)
+        self.human_hand.draw(self.deck)
+        self.computer_hand.draw(self.deck)
+        self.computer_hand.draw(self.deck)
+        self.dealer_hand.draw(self.deck)
         
         print(f"Player's Hand: {self.human_hand}")
         print(f"Dealer's Shown Card: {self.dealer_hand.cards[0]}")
@@ -423,7 +425,7 @@ class BlackjackGame:
         elif self.algorithm == 2:  # Medium: Q-Learning (placeholder)
             computerValue, usableAce = self.computer_hand.countHand()
 
-            dealerCard = self.dealer_hand[0].getValue()
+            dealerCard = self.dealer_hand.cards[0].getValue()
 
             if dealerCard > 10:
                 dealerCard = 10
@@ -440,7 +442,7 @@ class BlackjackGame:
 
             computerValue, usableAce = self.computer_hand.countHand()
 
-            dealerCard = self.dealer_hand[0].getValue()
+            dealerCard = self.dealer_hand.cards[0].getValue()
 
             if dealerCard > 10:
                 dealerCard = 10
@@ -453,6 +455,7 @@ class BlackjackGame:
             return action
 
     def dealer_turn(self):
+        self.dealer_hand.draw(self.deck)
         """Simulate dealer's turn."""
         dealerValue, dealerUsableAce = self.dealer_hand.countHand()
         
@@ -467,6 +470,9 @@ class BlackjackGame:
         playerValue = self.human_hand.countHand()
         computerValue = self.computer_hand.countHand()
         dealerValue = self.dealer_hand.countHand()
+        playerValue = playerValue[0]
+        computerValue = computerValue[0]
+        dealerValue = dealerValue[0]
         
         # Player goes bust
         if playerValue > 21:
@@ -512,6 +518,8 @@ class BlackjackGame:
                 return 3
             elif self.humanPlayerWins == 1:
                 return 4
+            else:
+                return 3
 
             print("Player wins value: " + str(self.humanPlayerWins))
             print("Comptuer wins value: " + str(self.computerPlayerWins))

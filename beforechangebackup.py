@@ -6,11 +6,11 @@
 
 # Import tkinter
 import tkinter as tk
-#from blackjack import *
 import time
-from blackjackmodel import *
+from FinalModel import *
 
 playerTurnOver = False
+
 
 # Class that vreates a Tkinter window
 class CasinoWindow:
@@ -72,9 +72,9 @@ def getButtonResult():
 # Class to create a button  
 class CasinoButton:
    
-   
     def buttonHit(self, root,width, height,statusBar, textBox, hand,deck, placement, computerTextBox, dealerTextBox, playerCurrency):
         global playerTurnOver
+        global game
         if playerTurnOver == False:
             game.humanPlayerInput(1)
             playerHand = game.get_playerHand()
@@ -90,6 +90,7 @@ class CasinoButton:
         
     def buttonStay(self, root,width, height,statusBar, textBox, hand,deck, placement, computerTextBox, dealerTextBox, playerCurrency):
         global playerTurnOver
+        global game
         if playerTurnOver == False:        
             statusBar.updatePlayerTurn()
             game.humanPlayerInput(0)
@@ -100,6 +101,7 @@ class CasinoButton:
         
     def buttonDoubleDown(self,playerCurrency,root, width, height, statusBar, textBox, hand, deck, placement, computerTextBox, dealerTextBox):
         global playerTurnOver
+        global game
         if playerTurnOver == False:        
             bet = playerCurrency.getBet()
             bet = bet * 2
@@ -144,8 +146,7 @@ class CasinoButton:
             self.button.place(x=x_pos, y=y_pos, width = width/5, height = height/8)
 
     def updateOtherPlayers(self, root, statusBar,width, height, textBox, computerTextBox, dealerTextBox, currency):
-        #global dealerScore, computerScore, playerScore
-        
+        global game
         root.after(1000)
         computerHand = game.get_computerHand()
       
@@ -153,14 +154,16 @@ class CasinoButton:
         dealerHand = game.get_dealerHand()
         
         statusBar.printCards(root, dealerHand, 0, width, height, textBox)
-        statusBar.showScores(dealerTextBox, computerTextBox, textBox)   
+        statusBar.showScores(root,dealerTextBox, computerTextBox, textBox, width, height)   
         self.endScreen(root, width, height, currency)
         
     def endScreen(self, root, width, height, currency):
+        global game
         winnings = currency.getBet()
         results = game.calculate_winner()
-        print(results)
-        newFrame = CasinoFrame(root, "white", width/2.5, height/4, width/3.3, height/4)
+        #print(results)
+        print(width/2.5)
+        newFrame = CasinoFrame(root, "rosy brown", width/2.5, height/4, width/3.3, height/4)
         resultString = ""
         if results == 0:
             resultString = "House wins! You lost $" + str(winnings)
@@ -170,12 +173,21 @@ class CasinoButton:
             resultString = "You win! You won $" + str(winnings)
         elif results == 3:
             resultString = "You lost! You lost $" + str(winnings)
+        elif restuls == 4:
+            resultString = "You tied with the dealer! You kept $" +str(winnings)
             
-        newTextBox = tk.Text(root, height = 5, width = 25)
+        newTextBox = tk.Text(root, height = 5, width = 25, bg = "rosy brown")
         newTextBox.config(highlightthickness = 0, borderwidth = 0)
         newTextBox.insert(1.0,resultString)
-        newTextBox.place(x=210, y=200)
+        newTextBox.place(x=200, y=179)
+        
+        exitButton = tk.Button(root, text = "Exit", bg = "grey", relief = "ridge", bd = 5, command = lambda: root.destroy())
+        exitButton.place(x = width/2 + 25, y = 215, width = width/2.5/3, height = height / 8)
+        
+        resetButton = tk.Button(root, text = "Reset", bg = "grey", relief = "ridge", bd = 5, command = lambda: [root.destroy(),openCasinoWindow()])
+        resetButton.place(x = width/2 - 100, y = 215, width = width/2.5/3, height = height / 8)        
        
+        
 # Class to create text boxes to track the score of the dealer and players
 class CasinoScore:
    
@@ -232,14 +244,13 @@ class CasinoStatus:
     # @param width: the width of the status text box
     # @param height: the height of the status text box  
     def __init__(self, root,width, height):
+        self.width = width
+        self.height = height
         self.textBox = tk.Text(root, bg = "grey")
         self.textBox.place(x=0, y=height-20, width = width, height = height/20)
         self.textBox.insert(1.0, "Welcome to Blackjack! Player 1 will go first!")
         self.textBox.config(state="disabled")
-        self.player = 1
-       
-        #self.textBox.after(1000, self.openingTurn())
-        #root.after(100, self.openingTurn())        
+        self.player = 1      
        
     def openingTurn(self, root):
         root.after(2000)
@@ -254,7 +265,7 @@ class CasinoStatus:
     def getPlayerTurn(self):
         return self.player
        
-       
+    #Update whose turn it is and update the status bar with the corresponding result
     def updatePlayerTurn(self):
         self.textBox.config(state="normal")
         self.textBox.delete(1.0, tk.END)
@@ -267,25 +278,22 @@ class CasinoStatus:
             self.textBox.insert(1.0, "Player 1's turn.")
            
         self.textBox.config(state="disabled")        
-       
-    def updateGameOver(self, winner):
-        self.textBox.config(state="normal")
-        self.textBox.delete(1.0, tk.END)
-        if(winner == 1):
-            self.textBox.insert(1.0, "You won!")
-        elif(winner == 2):
-            self.textBox.insert(1.0, "You lost, computer won!")
-        else:
-            self.textBox.insert(1.0, "Dealer won!")
-        self.textBox.config(state="disabled")
         
+    #Print cards for the specified hand
+    # @param root, the root window
+    # @param hand, the hand to print
+    # @param placement, which player or dealer's hand this is 
+    # @param width, the width of the window
+    # @param height, the height of the window
+    # @param textBox, the textBox to print scores in
     def printCards(self,root,hand, placement, width, height, textBox):
+        global game
         dealerPlacement = (10, height /10)
         playerPlacement = (50, height/2)
         computerPlacement = (width *0.6, height/2)
         
         handLength = len(hand.cards)
-        print("GUI MODEL HERE : ",hand.cards)
+        #print("GUI MODEL HERE : ",hand.cards)
         if(handLength > 6):
             playerPlacement = (30, height/2)
             computerPlacement = (width * 0.5, height /2)
@@ -308,7 +316,9 @@ class CasinoStatus:
             for i in range(len(hand.cards)):
                 newCard = CasinoCard(root, hand.cards[i].getSuit(), hand.cards[i].getValue(), dealerPlacement[0] + (i*75), dealerPlacement[1], textBox )      
        
-    def showScores(self, dealerTextBox, computerTextBox, playerTextBox):
+    #Show the scores of the players and dealer in their respective score boxes
+    def showScores(self, root,dealerTextBox, computerTextBox, playerTextBox, width, height):
+        global game
         score = game.get_dealerHand().countHand()
         dealerTextBox.updateScore(score[0])
 
@@ -316,7 +326,9 @@ class CasinoStatus:
         computerTextBox.updateScore(score[0])
         
         score = game.get_playerHand().countHand()
-        playerTextBox.updateScore(score[0])       
+        playerTextBox.updateScore(score[0])      
+        
+             
        
        
 # Class to create a card using a label frame and a label      
@@ -359,7 +371,8 @@ class CasinoCard:
             face = "A"
         else:
             face = value
-
+            
+        #Create a frame and label with the card's information
         card_frame = tk.Frame(root,bg="white", width = 50, height = 100)
         card_frame.place(x=row, y = column)
        
@@ -367,87 +380,45 @@ class CasinoCard:
         cardFrameLabel.config(highlightbackground="black", highlightthickness = 2)
         cardFrameLabel.pack()  
           
-
+#CasinoDeck creates a deck image and places it in the dealer's frame
 class CasinoDeck():
-   
+    
+    #Initialize the deck 
+    # @param root, the root window
+    # @param width, the width of the window
+    # @param height, the height of the window
     def __init__(self, root,width,height):
         deck_frame = tk.Frame(root,bg="orange", width = 50, height = 95, relief = "raised", bd = 5)
         deck_frame.place(x=width-width/20 -30, y = height/10)
         deck_frame.pack_propagate(False)
         deckFrameLabel = tk.Label(deck_frame, text = "%s"% (chr(0x263A)))
         deckFrameLabel.pack(pady=30)
-       
-#class gameSetup():
-    #def __init__(self, root,width, height,numDecks, dealerTextBox, playerTextBox, computerTextBox, statusBar):
-        #self._deck = Deck(numDecks)
-        #self._deck.shuffle()
-        #self._playerHand = Hand()
-        #self._computerHand = Hand()
-        #self._dealerHand = Hand()
-        #self._dealerTextBox = dealerTextBox
-        #self._statusBar = statusBar
-        
-        #card_frame = tk.Frame(root,bg="orange", width = 45, height = 85, relief = "raised", bd = 2)
-        #card_frame.place(x=85, y = height/10)
-        #card_frame.pack_propagate(False)
-        #cardFrameLabel = tk.Label(card_frame, text = "%s"% (chr(0x263A)))
-        #cardFrameLabel.pack(pady=30) 
-        
-        #card_frame = tk.Frame(root,bg="orange", width = 45, height = 85, relief = "raised", bd = 2)
-        #card_frame.place(x=10, y = height/10)
-        #card_frame.pack_propagate(False)
-        #cardFrameLabel = tk.Label(card_frame, text = "%s"% (chr(0x263A)))
-        #cardFrameLabel.pack(pady=30)        
-        
-        
-    #def showScores(self, dealerTextBox, computerTextBox, playerTextBox):
-        #for i in range(1):
-            #self._dealerHand.draw(self._deck)
-            #dealerTextBox.updateScore(self.getDealerHandValue())
-           
-        #for i in range(2):
-            #self._computerHand.draw(self._deck)
-            #computerTextBox.updateScore(self.getComputerHandValue())
-           
-        #for i in range(2):
-            #self._playerHand.draw(self._deck)
-            #playerTextBox.updateScore(self.getPlayerHandValue())
-            
-                     
 
-    #def flipDealerCard(self, root, hand,height, width, statusBar, dealerTextBox):
-        #self._dealerHand.draw(self._deck)
-        #statusBar.printCards(root, self.getDealerHand(), 0, width, height, dealerTextBox)
-        #dealerTextBox.updateScore(self.getDealerHandValue())
-        
-    #def getPlayerHand(self):
-        #return self._playerHand
-   
-    #def getDealerHand(self):
-        #return self._dealerHand
-   
-    #def getComputerHand(self):
-        #return self._computerHand
-   
-    #def getDeck(self):
-        #return self._deck
-   
-    #def getPlayerHandValue(self):
-        #return self._playerHand.countHand()
-   
-    #def getComputerHandValue(self):
-        #return self._computerHand.countHand()
-   
-    #def getDealerHandValue(self):
-        #return self._dealerHand.countHand()
+algorithm = None
+game = None
 
+def setAlgorithm(algoNum):
+    global algorithm
+    global game
+    algorithm = algoNum
+    game = BlackjackGame(6,100, algorithm)
+    
+    
 def getAlgorithm():
     return algorithm
 
-def openCasinoWindow(algorithmDifficulty):
-    global algorithm 
-    algorithm = algorithmDifficulty
+
+print(algorithm)
+
+
+def openCasinoWindow():
+    #global variable for the algorithm selected by the player
     
+    #global variable for if the player can continue to play
+    global playerTurnOver
+    playerTurnOver = False
+
+    #Create main Casino window
     casinoWindow = CasinoWindow()
    
     #Create reference variables
@@ -463,8 +434,6 @@ def openCasinoWindow(algorithmDifficulty):
     frame4 = CasinoFrame(root, "saddle brown", width, height/5, 0, height * 4/5)
    
     #Create Score Boxes
-
-    
     dealerScore = CasinoScore(root, 30, 30, width-width/20, 0, "white")
     computerScore = CasinoScore(root, 30, 30, width-width/20, height/3, "white")
     playerScore = CasinoScore(root, 30, 30, 0, height/3, "white")
@@ -474,9 +443,8 @@ def openCasinoWindow(algorithmDifficulty):
     statusBar = CasinoStatus(root,width, height) 
     
     #Set the game up
-    #game = gameSetup(root,width,height,5, dealerScore, playerScore, computerScore, statusBar)
     global game 
-    game = BlackjackGame(6,100, getAlgorithm())
+    print(game)
     
     #Create buttons
     button1 = CasinoButton(root, "Hit",width, height, "grey", int(width /4) - width/10 -50, int(height * 6.7/8), statusBar,playerScore, computerScore, dealerScore,game.get_playerHand(), game.get_deck(),playerCurrency,"hit")
@@ -496,48 +464,62 @@ def openCasinoWindow(algorithmDifficulty):
     player_label = tk.Label(root, text="Computer",relief="ridge", bd=5, width=10, height=2, bg="cyan")
     player_label.place(x=width * 7 / 10, y=height / 3)    
     
+    #Update idle tasks to use the root.after wait command
     root.update_idletasks()
     
+    #Opening turn delays opening by 2 seconds
     statusBar.openingTurn(root)
     
+    #Start the game
     game.start_game()
+    print("Deck Size: " + str(game.deck.getSize()))
     
-    #game.showScores(dealerScore, computerScore, playerScore)
+    #Print the inital cards for the dealer and players
     statusBar.printCards(root, game.get_playerHand(), 1, width, height, playerScore)
     statusBar.printCards(root, game.get_computerHand(), 2, width, height, computerScore)
     statusBar.printCards(root, game.get_dealerHand(), 0, width, height, dealerScore)    
+    #Show the scores of the cards in the text boxes
+    statusBar.showScores(root,dealerScore, computerScore, playerScore, width, height)
     
-    statusBar.showScores(dealerScore, computerScore, playerScore)
+    card_frame = tk.Frame(root,bg="orange", width = 45, height = 85, relief = "raised", bd = 2)
+    card_frame.place(x=85, y = height/10)
+    card_frame.pack_propagate(False)
+    cardFrameLabel = tk.Label(card_frame, text = "%s"% (chr(0x263A)))
+    cardFrameLabel.pack(pady=30)    
+  
     
-    #UNCOMMENT THIS TO FLIP DEALERS SECOND CARD
-    #game.flipDealerCard(root, game.getDealerHand(), height, width, statusBar, dealerScore)
+    #Root main loop to process commands
     root.mainloop()  
    
-   
+
 def selectDifficulty():
     #create the main menu window
     root = tk.Tk()
     root.geometry("400x400")
-    root.title("Main Casino Window")
+    root.title("Casino Difficulty Select")
     root.configure(bg= "light goldenrod")
     root.resizable(False, False)
    
+    #Create heading label and instruction labels
     heading = tk.Label(text = "Welcome to the Casino!", font = "Latha", bg = "light goldenrod")
     heading.pack(pady=20)
-   
-
-    # Create buttons that will open the CasinoWindow
-    button1 = tk.Button(root, text="Easy", relief="raised", bd=5,command=lambda: openCasinoWindow(1), bg = "light green")
-    button1.place(x=150, y=100, width=100, height=50)
     
-    button2 = tk.Button(root, text="Medium",relief="raised", bd=5, command=lambda:openCasinoWindow(2), bg = "light blue")
-    button2.place(x=150, y=170, width=100, height=50)
+    message = tk.Label(text = "Select a difficulty to play Blackjack!", font = "latha", bg = "light goldenrod")
+    message.pack()
+    
+    # Create buttons that will open the CasinoWindow with a different difficulty on each 1-3 easy medium hard respectively 
+    button1 = tk.Button(root, text="Easy", relief="raised", bd=5,command=lambda: [setAlgorithm(1),openCasinoWindow()], bg = "light green")
+    button1.place(x=150, y=110, width=100, height=50)
+    
+    button2 = tk.Button(root, text="Medium",relief="raised", bd=5, command=lambda:[setAlgorithm(2),openCasinoWindow()], bg = "light blue")
+    button2.place(x=150, y=180, width=100, height=50)
      
-    button3 = tk.Button(root, text="Hard",relief="raised", bd=5, command=lambda:openCasinoWindow(3), bg = "pink")               #TO HAVE DIFFERENT COMPUTER LOGIC, ADD A PARAMETER IN openCasinoWindow for easy, medium, and hard
-    button3.place(x=150, y=240, width=100, height=50)
-
-    root.mainloop()    
+    button3 = tk.Button(root, text="Hard",relief="raised", bd=5, command=lambda:[setAlgorithm(3), openCasinoWindow()],bg = "pink")
+    button3.place(x=150, y=250, width=100, height=50)
     
+    #Keep root running to play more games 
+    root.mainloop()    
+
 def main():
     selectDifficulty()
     
