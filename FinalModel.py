@@ -221,16 +221,16 @@ class BlackjackGame:
     def __init__(self, num_decks=6, starting_balance=100, algoNum=1):
         self.deck = Deck(num_decks)
         self.deck.shuffle()
-        
+
         self.human_hand = Hand()
         self.computer_hand = Hand()
         self.dealer_hand = Hand()
-        
+
         self.balance = starting_balance
         self.bet = 0
-        
+
         self.algorithm = algoNum
-        
+
         self.humanPlayerWins = 0  # 1 = win, 2 = loss, 0 = undecided
         self.computerPlayerWins = 0
         self.humanPlayerTurnDone = False
@@ -259,7 +259,7 @@ class BlackjackGame:
             else:
                 index = 1
 
-        # else if there is a usable ace        
+        # else if there is a usable ace
         elif usableAce == 1:
 
             if action == 0:
@@ -269,7 +269,7 @@ class BlackjackGame:
 
         return index
 
-    # Chooses action based on Q Values from npy file    
+    # Chooses action based on Q Values from npy file
     def chooseAction(self, playerValue: int, dealerCard: int, usableAce: int, numBustCards: int,
                      totalCards: int) -> int:
         hitValue = self.QTable[playerValue, dealerCard, (self.rewardIndex(1, usableAce))]
@@ -301,7 +301,7 @@ class BlackjackGame:
 
         #print("Hit Value After calculation: " + str(hitValue))
         #print()
-        
+
         if hitValue > standValue:
             if hitValue > 0.95:
                 return 2
@@ -310,7 +310,7 @@ class BlackjackGame:
         else:
             return 0
 
-    # Chooses action based on Q Values from npy file    
+    # Chooses action based on Q Values from npy file
     def chooseActionNoCardCount(self, playerValue: int, dealerCard: int, usableAce: int) -> int:
         hitValue = self.QTable[playerValue, dealerCard, (self.rewardIndex(1, usableAce))]
         standValue = self.QTable[playerValue, dealerCard, (self.rewardIndex(0, usableAce))]
@@ -402,14 +402,14 @@ class BlackjackGame:
             # Determine action based on algorithm
             action = self.computer_algorithm(computerValue)
 
-            if action == "hit":
+            if action == 1:
                 print("Computer hits.")
                 self.computer_hand.draw(self.deck)
-            elif action == "stand":
+            elif action == 0:
                 print("Computer stands.")
                 self.setComputerPlayerTurnDone(True)
                 self.dealer_turn()
-            elif action == "double down":
+            elif action == 2:
                 print("Computer doubles down.")
                 self.computer_hand.draw(self.deck)
                 self.setComputerPlayerTurnDone(True)
@@ -432,7 +432,7 @@ class BlackjackGame:
                 dealerCard = 11
 
             action = self.chooseActionNoCardCount(computerValue, dealerCard, usableAce)
-            
+
             return action
         elif self.algorithm == 3:  # Hard: Q-Learning with card counting
             numBustCards = self.deck.getNumBustCards(computerValue)
@@ -447,9 +447,9 @@ class BlackjackGame:
 
             if dealerCard == 1:
                 dealerCard = 11
-                
+
             action = self.chooseAction(computerValue, dealerCard, usableAce, numBustCards, totalCards)
-            
+
             return action
 
     def dealer_turn(self):
@@ -461,9 +461,90 @@ class BlackjackGame:
             dealerValue, dealerUsableAce = self.dealer_hand.countHand()
             
         self.calculate_winner()
-        
-        
+
+    # 1 = win, 2 = loss, 0 = undecided, 3 = tie
     def calculate_winner(self):
+        playerValue = self.human_hand.countHand()
+        computerValue = self.computer_hand.countHand()
+        dealerValue = self.dealer_hand.countHand()
+        
+        # Player goes bust
+        if playerValue > 21:
+            self.setHumanPlayerWin(2)
+        else:
+            #Player didn't bust, check dealer values
+            if dealerValue > 21:
+                self.setHumanPlayerWin(1)
+            elif dealerValue < playerValue:
+                self.setHumanPlayerWin(1)
+            elif dealerValue > playerValue:
+                self.setHumanPlayerWin(2)
+            else:
+                self.setHumanPlayerWin(3)
+
+                # Player goes bust
+            if computerValue > 21:
+                self.setComputerPlayerWin(2)
+            else:
+                # Player didn't bust, check dealer values
+                if dealerValue > 21:
+                    self.setComputerPlayerWin(1)
+                elif dealerValue < computerValue:
+                    self.setComputerPlayerWin(1)
+                elif dealerValue > computerValue:
+                    self.setComputerPlayerWin(2)
+                else:
+                    self.setComputerPlayerWin(3)
+
+        if self.humanPlayerWins == 2 and self.computerPlayerWins == 2:
+            print("Dealer Wins")
+            # if both lose, dealer wins return 0
+            return 0
+        else:
+            if self.humanPlayerWins == 1 and self.computerPlayerWins == 1:
+                # if both win return 1
+                return 1
+            elif self.humanPlayerWins == 1 and self.computerPlayerWins != 1:
+                # if human wins and computer loses return 2
+                return 2
+            elif self.humanPlayerWins != 1 and self.computerPlayerWins == 1:
+                # human loses computer wins return 3
+                return 3
+            elif self.humanPlayerWins == 1:
+                return 4
+
+            print("Player wins value: " + str(self.humanPlayerWins))
+            print("Comptuer wins value: " + str(self.computerPlayerWins))
+        
+        """
+        if self.dealer_hand.countHand() > 21:
+            if self.human_hand.countHand() <= 21:
+                self.setHumanPlayerWin(1)
+            else:
+                self.setHumanPlayerWin(2)
+            if self.computer_hand.countHand() <= 21:
+                self.computerPlayerWins(1)
+            else:
+                self.setHumanPlayerWin(2)
+        else:
+            if self.dealer_hand.countHand() > self.human_hand.countHand()
+                self.setHumanPlayerWin(1)
+            else:
+                self.setHumanPlayerWin(2)
+            
+            if self.dealer_hand.countHand() > self.computer_hand.countHand():
+                self.setComputerPlayerWin(1)
+            else:
+                self.setComputerPlayerWin(2)
+                
+        
+            
+        
+        
+        
+        
+        
+        
         humanValue, _ = self.human_hand.countHand()
         computerValue, _ = self.computer_hand.countHand()
         dealerValue, _ = self.dealer_hand.countHand()    
@@ -498,6 +579,7 @@ class BlackjackGame:
             
             print("Player wins value: " + str(self.humanPlayerWins))
             print("Comptuer wins value: " + str(self.computerPlayerWins))
+    """
             
         
             
